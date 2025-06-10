@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNK ANALYTICS DEMO</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --dark-gradient: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #1a1a2e;
+            --text-secondary: #6b7280;
+            --text-light: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--dark-gradient);
+            min-height: 100vh;
+            color: var(--text-light);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 107, 107, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 242, 254, 0.2) 0%, transparent 50%);
+            animation: backgroundShift 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(2deg); }
+        }
+
+        /* Floating elements */
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-element {
+            position: absolute;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 15s infinite linear;
+        }
+
+        .floating-element:nth-child(1) { width: 80px; height: 80px; top: 10%; left: 10%; animation-delay: 0s; }
+        .floating-element:nth-child(2) { width: 60px; height: 60px; top: 20%; right: 10%; animation-delay: -5s; }
+        .floating-element:nth-child(3) { width: 100px; height: 100px; bottom: 30%; left: 5%; animation-delay: -10s; }
+        .floating-element:nth-child(4) { width: 40px; height: 40px; bottom: 10%; right: 20%; animation-delay: -15s; }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-30px) rotate(120deg); }
+            66% { transform: translateY(-60px) rotate(240deg); }
+            100% { transform: translateY(0px) rotate(360deg); }
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .header.scrolled {
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(25px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(79, 172, 254, 0.5);
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes logoGlow {
+            from { filter: drop-shadow(0 0 5px rgba(79, 172, 254, 0.5)); }
+            to { filter: drop-shadow(0 0 15px rgba(79, 172, 254, 0.8)); }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 500;
+            font-size: 1.1rem;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-links a::before {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-gradient);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-links a:hover::before {
+            width: 100%;
+        }
+
+        .nav-links a:hover {
+            color: #4facfe;
+            text-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            z-index: 10;
+            animation: heroFadeIn 1.5s ease-out;
+        }
+
+        @keyframes heroFadeIn {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 900;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #fff 0%, #4facfe 50%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+            animation: textShimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes textShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+            font-weight: 400;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+            animation: slideUp 1.5s ease-out 0.3s both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 0.9; transform: translateY(0); }
+        }
+
+        .cta-button, .analysis-button {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 1.5rem 3rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 40px rgba(79, 172, 254, 0.3);
+            animation: buttonFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes buttonFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .cta-button::before, .analysis-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .cta-button:hover::before, .analysis-button:hover::before {
+            left: 100%;
+        }
+
+        .cta-button:hover, .analysis-button:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 20px 60px rgba(79, 172, 254, 0.4);
+        }
+
+        .analysis-button {
+            background: var(--success-gradient);
+            box-shadow: 0 10px 40px rgba(67, 233, 123, 0.3);
+            margin: 1.5rem;
+        }
+
+        .analysis-button:hover {
+            box-shadow: 0 20px 60px rgba(67, 233, 123, 0.4);
+        }
+
+        .section-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 3rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2.5rem;
+            margin: 6rem 0;
+            padding: 4rem 0;
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            padding: 3rem;
+            border-radius: 25px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(79, 172, 254, 0.1), transparent);
+            animation: cardRotate 10s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        @keyframes cardRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .feature-card:hover {
+            transform: translateY(-15px) scale(1.02);
+            box-shadow: 0 30px 80px rgba(79, 172, 254, 0.2);
+            border-color: rgba(79, 172, 254, 0.5);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--accent-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+            animation: iconPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes iconPulse {
+            from { box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3); }
+            to { box-shadow: 0 15px 40px rgba(79, 172, 254, 0.5); }
+        }
+
+        .feature-card h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .feature-card p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .demo-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            padding: 4rem;
+            margin: 6rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--accent-gradient);
+            animation: borderFlow 3s ease-in-out infinite;
+        }
+
+        @keyframes borderFlow {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .demo-tabs {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-button {
+            padding: 1rem 2rem;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--accent-gradient);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .tab-button.active::before {
+            left: 0;
+        }
+
+        .tab-button.active {
+            color: white;
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .tab-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            animation: tabFadeIn 0.5s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes tabFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .backend-section {
+            text-align: center;
+            padding: 3rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .backend-section h3 {
+            color: #4facfe;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .backend-section p {
+            margin-bottom: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 450px;
+            margin: 3rem 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .stat-card {
+            background: var(--accent-gradient);
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: statShimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes statShimmer {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 50px rgba(79, 172, 254, 0.4);
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .contact-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            padding: 4rem;
+            margin: 6rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .contact-form {
+            max-width: 600px;
+            margin: 3rem auto 0;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 1.2rem;
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: var(--text-light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .sample-data-btn {
+            background: var(--success-gradient);
+            color: white;
+            padding: 1.2rem 2rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .sample-data-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(67, 233, 123, 0.4);
+        }
+
+        .analysis-results {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .analysis-results h4 {
+            color: #4facfe;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .analysis-results ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .analysis-results li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            padding-left: 2rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+
+        .analysis-results li::before {
+            content: '✨';
+            position: absolute;
+            left: 0;
+            top: 0.8rem;
+        }
+
+        .footer {
+            background: var(--dark-gradient);
+            color: var(--text-light);
+            text-align: center;
+            padding: 4rem 2rem;
+            margin-top: 6rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--accent-gradient);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .demo-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Loading Animation */
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(79, 172, 254, 0.3);
+            border-top: 3px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .page-loader.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page Loader -->
+    <div class="page-loader" id="pageLoader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Floating Background Elements -->
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <header class="header" id="header">
+        <div class="header-content">
+            <div class="logo">FNK ANALYTICS DEMO</div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#demo">Demo</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <h1>Transforming Your Data Into Intelligence</h1>
+                <p>Unleash the power of cutting-edge data analysis.</p>
+                <a href="#demo" class="cta-button">
+                    Explore Platform
+                </a>
+            </div>
+        </section>
+
+        <section id="features" class="container">
+            <h2 class="section-title">Revolutionary Features</h2>
+            <div class="features">
+                <div class="feature-card">
+                <h3>Machine Learning</h3>
+                    <p>Machine learning algorithms that automatically discover patterns, trends, and insights in your data with unprecedented accuracy and speed.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Real-Time Visualization</h3>
+                    <p>Dynamic, interactive dashboards that update in real-time, featuring 3D visualizations and immersive data exploration experiences.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Smart Data Quality</h3>
+                    <p>Automated data cleansing and validation powered by the intelligent FNK app, ensuring your analysis is built on the highest quality foundation.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Lightning Performance</h3>
+                    <p>Process thousands of records instantly.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="demo" class="container">
+            <div class="demo-section">
+                <h2 class="section-title">Experience the Future</h2>
+                <div class="demo-tabs">
+                    <button class="tab-button active" onclick="showTab('analysis')"> Launch Platform</button>
+                    <button class="tab-button" onclick="showTab('sample')"> Sample Insights</button>
+                    <button class="tab-button" onclick="showTab('visualization')">Live Visualization</button>
+                </div>
+
+                <div id="analysis" class="tab-content active">
+                    <div class="backend-section">
+                        <h3> Access Premium Analytics Suite</h3>
+                        <p>Enter the next dimension of data analysis with this professional-grade platform. Harness the power of advanced statistical computing and interactive visualizations.</p>
+                        <button class="analysis-button" onclick="openAnalysisPlatform()">
+                             Launch Data Analysis Platform
+                        </button>
+                        <p style="margin-top: 1.5rem; font-size: 1rem; color: rgba(255, 255, 255, 0.7);">
+                             Advanced R Shiny •  ML Models •  Interactive Charts •  Professional Reports
+                        </p>
+                    </div>
+                </div>
+
+                <div id="sample" class="tab-content">
+                    <h3 style="color: #4facfe; font-size: 2.2rem; margin-bottom: 2rem;">Live Performance Dashboard</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">2.1M</div>
+                            <div>Records Analyzed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">99.7%</div>
+                            <div>Accuracy Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">$847M</div>
+                            <div>Value Unlocked</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">47%</div>
+                            <div>ROI Increase</div>
+                        </div>
+                    </div>
+                    <button class="sample-data-btn" onclick="loadSampleData()">🔍 Explore Sample Analysis</button>
+                    <div id="sampleAnalysis"></div>
+                    <div class="analysis-results">
+                        <h4> Key Intelligence Insights:</h4>
+                        <ul>
+                            <li>Discovered 94% correlation between customer sentiment and revenue growth patterns</li>
+                            <li>Identified optimal pricing strategy increasing margins by 23% across all segments</li>
+                            <li>Predicted seasonal demand fluctuations with 97% accuracy for next 12 months</li>
+                            <li>Uncovered hidden market opportunities worth $12M in untapped segments</li>
+                            <li>Optimized operations reducing costs by 31% while improving service quality</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="visualization" class="tab-content">
+                    <h3 style="color: #4facfe; font-size: 2.2rem; margin-bottom: 2rem;">Interactive Data Visualization</h3>
+                    <div class="chart-container">
+                        <canvas id="sampleChart"></canvas>
+                    </div>
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <p style="color: rgba(255, 255, 255, 0.8); font-size: 1.1rem;">
+                             Real-time data visualization with advanced filtering, drill-down capabilities, and predictive overlays
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="container">
+            <div class="contact-section">
+                <h2 class="section-title">Ready to Transform Your Business?</h2>
+                <p style="font-size: 1.3rem; margin-bottom: 2rem; color: rgba(255, 255, 255, 0.9);">
+                    Join industry leaders who've revolutionized their operations with our analytics platform
+                </p>
+                
+                <form class="contact-form" onsubmit="handleContactForm(event)">
+                    <div class="form-group">
+                        <label for="contact-name"> Contact Name</label>
+                        <input type="text" id="contact-name" name="contact-name" placeholder="Your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email"> Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="your.email@company.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-type"> Project Focus</label>
+                        <select id="project-type" name="project-type" required>
+                            <option value="">Select your primary need</option>
+                            <option value="ai-analytics"> AI-Powered Analytics</option>
+                            <option value="real-time-dashboards"> Real-Time Dashboards</option>
+                            <option value="predictive-modeling"> Predictive Modeling</option>
+                            <option value="data-transformation"> Data Transformation</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="message"> Project Vision</label>
+                        <textarea id="message" name="message" rows="4" placeholder="Describe your data challenges and goals. What outcomes are you looking to achieve?"></textarea>
+                    </div>
+                    <button type="submit" class="cta-button">
+                        Schedule Strategic Consultation
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p style="font-size: 1.2rem; margin-bottom: 1rem;">
+                &copy; 2025 YEKAS Insight Pro • Pioneering the Future of Data Intelligence
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Enhanced configuration and animations
+        const SHINY_APP_URL = 'http://localhost:3838';
+        const SHINY_APP_PORT = '3838';
+        let currentChart = null;
+        let isScrolling = false;
+
+        // Page loader
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('pageLoader').classList.add('fade-out');
+                setTimeout(() => {
+                    document.getElementById('pageLoader').style.display = 'none';
+                }, 500);
+            }, 1000);
+        });
+
+        // Enhanced scroll effects
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 100) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+
+            // Parallax effect for floating elements
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelectorAll('.floating-element');
+            parallax.forEach((element, index) => {
+                const speed = 0.5 + (index * 0.1);
+                element.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+
+        // Enhanced tab functionality with animations
+        function showTab(tabName) {
+            // Hide all tabs with fade out
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.opacity = '0';
+                setTimeout(() => {
+                    tab.classList.remove('active');
+                }, 150);
+            });
+            
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab with fade in
+            setTimeout(() => {
+                const selectedTab = document.getElementById(tabName);
+                selectedTab.classList.add('active');
+                selectedTab.style.opacity = '1';
+                event.target.classList.add('active');
+                
+                if (tabName === 'visualization') {
+                    setTimeout(createEnhancedChart, 200);
+                }
+            }, 150);
+        }
+
+        // Enhanced chart creation
+        function createEnhancedChart() {
+            const ctx = document.getElementById('sampleChart');
+            if (!ctx) return;
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const gradient1 = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+            gradient1.addColorStop(0, 'rgba(79, 172, 254, 0.8)');
+            gradient1.addColorStop(1, 'rgba(79, 172, 254, 0.1)');
+
+            const gradient2 = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+            gradient2.addColorStop(0, 'rgba(67, 233, 123, 0.8)');
+            gradient2.addColorStop(1, 'rgba(67, 233, 123, 0.1)');
+
+            const gradient3 = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+            gradient3.addColorStop(0, 'rgba(255, 107, 107, 0.8)');
+            gradient3.addColorStop(1, 'rgba(255, 107, 107, 0.1)');
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: '💰 Revenue Growth',
+                        data: [850, 920, 1100, 1350, 1580, 1750, 1920, 2100, 1950, 2200, 2450, 2650],
+                        borderColor: '#4facfe',
+                        backgroundColor: gradient1,
+                        borderWidth: 4,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#4facfe',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }, {
+                        label: '📊 Customer Acquisition',
+                        data: [120, 150, 180, 220, 280, 320, 380, 420, 390, 450, 520, 580],
+                        borderColor: '#43e97b',
+                        backgroundColor: gradient2,
+                        borderWidth: 4,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#43e97b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }, {
+                        label: '🎯 Market Penetration',
+                        data: [45, 52, 61, 78, 85, 92, 98, 105, 112, 125, 138, 152],
+                        borderColor: '#ff6b6b',
+                        backgroundColor: gradient3,
+                        borderWidth: 4,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#ff6b6b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '🚀 AI-Powered Business Intelligence Dashboard',
+                            font: { size: 18, weight: 'bold' },
+                            color: '#4facfe'
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                font: { size: 14 },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: { size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Enhanced sample data loading
+        function loadSampleData() {
+            const container = document.getElementById('sampleAnalysis');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); padding: 2.5rem; border-radius: 20px; margin: 2rem 0; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #4facfe, #00f2fe); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">📊</div>
+                        <div>
+                            <h4 style="color: #4facfe; font-size: 1.8rem; margin-bottom: 0.5rem;">Enterprise Dataset Analysis</h4>
+                            <p style="color: rgba(255, 255, 255, 0.8);">Real-time processing of 2.1M+ business records</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+                        <div style="background: rgba(79, 172, 254, 0.2); padding: 1.5rem; border-radius: 15px; text-align: center; border: 1px solid rgba(79, 172, 254, 0.3);">
+                            <div style="font-size: 2rem; font-weight: bold; color: #4facfe;">847K</div>
+                            <div style="color: rgba(255, 255, 255, 0.8);">Customer Records</div>
+                        </div>
+                        <div style="background: rgba(67, 233, 123, 0.2); padding: 1.5rem; border-radius: 15px; text-align: center; border: 1px solid rgba(67, 233, 123, 0.3);">
+                            <div style="font-size: 2rem; font-weight: bold; color: #43e97b;">1.2M</div>
+                            <div style="color: rgba(255, 255, 255, 0.8);">Transactions</div>
+                        </div>
+                        <div style="background: rgba(255, 107, 107, 0.2); padding: 1.5rem; border-radius: 15px; text-align: center; border: 1px solid rgba(255, 107, 107, 0.3);">
+                            <div style="font-size: 2rem; font-weight: bold; color: #ff6b6b;">156</div>
+                            <div style="color: rgba(255, 255, 255, 0.8);">Data Sources</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(0, 0, 0, 0.3); padding: 1.5rem; border-radius: 15px; margin-top: 2rem;">
+                        <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; line-height: 1.6;">
+                            🎯 <strong>Advanced Analytics Engine:</strong> Our AI-powered platform processes complex datasets in real-time, 
+                            delivering actionable insights with 99.7% accuracy. Experience the power of next-generation 
+                            business intelligence with the <strong>Launch Data Analysis Platform</strong> above.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Enhanced platform launch
+        function openAnalysisPlatform() {
+            // Create a more engaging launch experience
+            const button = event.target;
+            button.innerHTML = '🚀 Launching Platform...';
+            button.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            
+            setTimeout(() => {
+                window.open(SHINY_APP_URL, '_blank', 'width=1200,height=800');
+                button.innerHTML = '✨ Launch Data Analysis Platform';
+                button.style.background = 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+            }, 1500);
+        }
+
+        // Enhanced form handling
+        function handleContactForm(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            // Enhanced success message
+            const successMessage = `
+                🎉 Thank you for your interest, ${data['contact-name']}! 
+                
+                Our AI-powered analytics team will reach out within 24 hours to discuss how we can transform ${data.company}'s data into competitive advantage.
+                
+                Get ready to unlock unprecedented insights! 🚀
+            `;
+            
+            alert(successMessage);
+            event.target.reset();
+        }
+
+        // Smooth scrolling enhancement
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize enhanced features
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                createEnhancedChart();
+                
+                // Add intersection observer for animations
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }
+                    });
+                }, observerOptions);
+
+                // Observe feature cards for staggered animations
+                document.querySelectorAll('.feature-card').forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(50px)';
+                    card.style.transition = `all 0.6s ease ${index * 0.1}s`;
+                    observer.observe(card);
+                });
+            }, 1200);
+        });
+
+        // Add dynamic stats counter animation
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = Math.floor(progress * (end - start) + start);
+                element.innerHTML = current.toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Animate stats when visible
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const value = entry.target.textContent.replace(/[^\d]/g, '');
+                    if (value) {
+                        animateValue(entry.target, 0, parseInt(value), 2000);
+                        statsObserver.unobserve(entry.target);
+                    }
+                }
+            });
+        });
+
+        setTimeout(() => {
+            document.querySelectorAll('.stat-value').forEach(stat => {
+                statsObserver.observe(stat);
+            });
+        }, 1000);
+    </script>
+</body>
+</html>
